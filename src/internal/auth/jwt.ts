@@ -138,6 +138,42 @@ export function verifyJWT<T>(
     )
   })
 }
+/**
+ * Verify and decode a JWT token used for storage URL signing
+ * @param token - The JWT token string to verify and decode
+ */
+
+export function verifyStorageUrlToken<T>(token: string): Promise<jwt.JwtPayload & T> {
+  const { URL_SIGNING_SECRET, URL_SIGNING_ALGORITHM } = getConfig()
+
+  if (!URL_SIGNING_SECRET) {
+    return Promise.reject(new Error('URL_SIGNING_SECRET is not configured for verification.'))
+  }
+  if (!URL_SIGNING_ALGORITHM) {
+    return Promise.reject(new Error('URL_SIGNING_ALGORITHM is not configured for verification.'))
+  }
+
+  return new Promise<jwt.JwtPayload & T>((resolve, reject) => {
+    jwt.verify(
+      token,
+      URL_SIGNING_SECRET,
+      { algorithms: [URL_SIGNING_ALGORITHM as jwt.Algorithm] }, // Must match what signStorageUrlToken (or modified signJWT) used
+      (err, decoded) => {
+        if (err) {
+          if (err.name === 'TokenExpiredError') {
+            return reject(ERRORS.ExpiredSignature(err))
+          }
+          if (err.name === 'JsonWebTokenError') {
+            // This includes "invalid algorithm"
+            return reject(ERRORS.InvalidJWT(err))
+          }
+          return reject(err)
+        }
+        resolve(decoded as jwt.JwtPayload & T)
+      }
+    )
+  })
+}
 
 /**
  * Sign a JWT
@@ -168,6 +204,54 @@ export function signJWT(
   return new Promise<string>((resolve, reject) => {
     jwt.sign(payload, signingSecret, options, (err, token) => {
       if (err) return reject(err)
+      resolve(token as string)
+    })
+  })
+}
+
+/**
+ * Signs a token specifically for Supabase Storage pre-signed URLs.
+ * Uses URL_SIGNING_SECRET and URL_SIGNING_ALGORITHM from environment variables.
+ *
+ * @param payload The data to include in the JWT.
+ * @param expiresIn The expiration time for the JWT (e.g., "1h", "7d", or number of seconds).
+ */
+export function signStorageUrlToken(
+  payload: string | object | Buffer,
+  expiresIn: string | number | undefined
+): Promise<string> {
+  const { URL_SIGNING_SECRET, URL_SIGNING_ALGORITHM } = getConfig() // Get the new env vars
+
+  if (!URL_SIGNING_SECRET) {
+    return Promise.reject(new Error('URL_SIGNING_SECRET is not configured.'))
+  }
+  if (!URL_SIGNING_ALGORITHM) {
+    return Promise.reject(new Error('URL_SIGNING_ALGORITHM is not configured.'))
+  }
+
+  const options: jwt.SignOptions = {
+    algorithm: URL_SIGNING_ALGORITHM as jwt.Algorithm,
+  }
+
+  if (expiresIn) {
+    options.expiresIn = expiresIn
+  }
+
+  // The URL_SIGNING_SECRET is expected to be a simple string (symmetric key)
+  const signingSecret: string | Buffer = URL_SIGNING_SECRET
+
+  return new Promise<string>((resolve, reject) => {
+    jwt.sign(payload, signingSecret, options, (err, token) => {
+      if (err) {
+        // Log the specific error for better debugging
+        console.error(
+          'Error signing storage URL token:',
+          err.message,
+          'Algorithm:',
+          options.algorithm
+        )
+        return reject(err)
+      }
       resolve(token as string)
     })
   })

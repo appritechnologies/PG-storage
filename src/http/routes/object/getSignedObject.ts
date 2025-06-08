@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { FromSchema } from 'json-schema-to-ts'
 import { getConfig } from '../../../config'
-import { SignedToken, verifyJWT } from '../../../internal/auth'
+import { SignedToken, verifyJWT, verifyStorageUrlToken } from '../../../internal/auth'
 import { getJwtSecret } from '../../../internal/database'
 import { ROUTE_OPERATIONS } from '../operations'
 import { ERRORS } from '../../../internal/errors'
@@ -64,7 +64,8 @@ export default async function routes(fastify: FastifyInstance) {
       const { secret: jwtSecret, jwks } = await getJwtSecret(request.tenantId)
 
       try {
-        payload = (await verifyJWT(token, jwtSecret, jwks)) as SignedToken
+        // payload = (await verifyJWT(token, jwtSecret, jwks)) as SignedToken
+        payload = (await verifyStorageUrlToken(token)) as SignedToken
       } catch (e) {
         const err = e as Error
         throw ERRORS.InvalidJWT(err)

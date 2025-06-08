@@ -168,6 +168,9 @@ type StorageConfigType = {
   }
   cdnPurgeEndpointURL?: string
   cdnPurgeEndpointKey?: string
+
+  URL_SIGNING_SECRET?: string
+  URL_SIGNING_ALGORITHM?: string
 }
 
 function getOptionalConfigFromEnv(key: string, fallback?: string): string | undefined {
@@ -482,6 +485,8 @@ export function getConfig(options?: { reload?: boolean }): StorageConfigType {
       getOptionalConfigFromEnv('RATE_LIMITER_REDIS_COMMAND_TIMEOUT') || '2',
       10
     ),
+    URL_SIGNING_SECRET: getOptionalConfigFromEnv('URL_SIGNING_SECRET'),
+    URL_SIGNING_ALGORITHM: getOptionalConfigFromEnv('URL_SIGNING_ALGORITHM') || 'HS256',
   } as StorageConfigType
 
   if (!config.isMultitenant && !config.serviceKey) {

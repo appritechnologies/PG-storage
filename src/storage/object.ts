@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { SignedUploadToken, signJWT, verifyJWT } from '@internal/auth'
+import { SignedUploadToken, signJWT, verifyJWT, signStorageUrlToken } from '@internal/auth'
 import { ERRORS } from '@internal/errors'
 import { getJwtSecret } from '@internal/database'
 
@@ -18,6 +18,7 @@ import {
 } from './events'
 import { FastifyRequest } from 'fastify/types/request'
 import { Obj } from '@storage/schemas'
+import { log } from 'node:console'
 
 const { requestUrlLengthLimit, storageS3Bucket } = getConfig()
 
@@ -640,7 +641,8 @@ export class ObjectStorage {
     const urlParts = url.split('/')
     const urlToSign = decodeURI(urlParts.splice(3).join('/'))
     const { urlSigningKey } = await getJwtSecret(this.db.tenantId)
-    const token = await signJWT({ url: urlToSign, ...metadata }, urlSigningKey, expiresIn)
+    log(`urlSigningKey: ${urlSigningKey}`)
+    const token = await signStorageUrlToken({ url: urlToSign, ...metadata }, expiresIn)
 
     let urlPath = 'object'
 
