@@ -27,7 +27,7 @@ const build = (opts: buildOpts = {}): FastifyInstance => {
   // Enable CORS for all origins
   app.register(fastifyCors, {
     origin: true, // Allow all origins
-    credentials: true, // Allow credentials
+
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   })
