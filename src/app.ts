@@ -3,6 +3,7 @@ import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
 import { routes, schemas, plugins, setErrorHandler } from './http'
 import { getConfig } from './config'
+import fastifyCors from '@fastify/cors'
 
 interface buildOpts extends FastifyServerOptions {
   exposeDocs?: boolean
@@ -22,6 +23,14 @@ const build = (opts: buildOpts = {}): FastifyInstance => {
 
   // kong should take care of cors
   // app.register(fastifyCors)
+
+  // Enable CORS for all origins
+  app.register(fastifyCors, {
+    origin: true, // Allow all origins
+    credentials: true, // Allow credentials
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  })
 
   if (opts.exposeDocs) {
     app.register(fastifySwagger, {
