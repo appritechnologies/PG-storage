@@ -255,8 +255,29 @@ export class S3Locker implements Locker {
                 })
               )
               this.logger.log(`Cleaned up ${batch.length} expired locks in batch`)
-            } catch (error) {
-              this.logger.warn(`Failed to delete batch of expired locks:`, error)
+            } catch (error: any) {
+              const code = error?.Code ?? error?.name
+              if (code === 'NotImplemented') {
+                const results = await Promise.allSettled(
+                  batch.map((key) =>
+                    this.s3Client.send(
+                      new DeleteObjectCommand({ Bucket: this.bucket, Key: key })
+                    )
+                  )
+                )
+                for (const result of results) {
+                  if (
+                    result.status === 'rejected' &&
+                    (result.reason as any)?.Code !== 'NoSuchKey' &&
+                    (result.reason as any)?.name !== 'NoSuchKey'
+                  ) {
+                    this.logger.warn(`Failed to delete expired lock individually:`, result.reason)
+                  }
+                }
+                this.logger.log(`Cleaned up ${batch.length} expired locks individually (batch not supported)`)
+              } else {
+                this.logger.warn(`Failed to delete batch of expired locks:`, error)
+              }
             }
           }
         }
