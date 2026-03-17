@@ -1,0 +1,27 @@
+steps:
+
+
+# Build & Push: PG Storage Service
+# -------------------------------------------------------------------------
+- name: 'gcr.io/kaniko-project/executor:latest'
+  id: 'build-pg-storage'
+  args:
+    - '--destination=europe-west1-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/pg-storage:${_VERSION}'
+    # Context points to the pg-storage folder
+    - '--context=dir://.'
+    # Dockerfile path relative to that folder
+    - '--dockerfile=Dockerfile'
+    - '--cache=true'
+  waitFor: ['-']
+
+# -------------------------------------------------------------------------
+# Substitutions for this build
+# -------------------------------------------------------------------------
+substitutions:
+  _ARTIFACT_REPO: 'backend-images'
+  _VERSION: '$SHORT_SHA'
+
+tags: ['pg-storage', 'europe-west1']
+
+options:
+  logging: CLOUD_LOGGING_ONLY
