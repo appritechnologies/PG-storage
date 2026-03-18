@@ -45,6 +45,7 @@ const {
   uploadFileSizeLimit,
   storageBackendType,
   storageFilePath,
+  storageS3DisableChecksum,
 } = getConfig()
 
 type MultiPartRequest = http.IncomingMessage & {
@@ -77,6 +78,10 @@ function createTusStore(agent: { httpsAgent: https.Agent; httpAgent: http.Agent 
         region: storageS3Region,
         endpoint: storageS3Endpoint,
         forcePathStyle: storageS3ForcePathStyle,
+        ...(storageS3DisableChecksum && {
+          requestChecksumCalculation: 'WHEN_REQUIRED' as const,
+          responseChecksumValidation: 'WHEN_REQUIRED' as const,
+        }),
       },
     })
   }
@@ -126,6 +131,10 @@ function createTusServer(
               region: storageS3Region,
               endpoint: storageS3Endpoint,
               forcePathStyle: storageS3ForcePathStyle,
+              ...(storageS3DisableChecksum && {
+                requestChecksumCalculation: 'WHEN_REQUIRED' as const,
+                responseChecksumValidation: 'WHEN_REQUIRED' as const,
+              }),
             }),
             notifier: lockNotifier,
           })
